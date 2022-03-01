@@ -1,0 +1,46 @@
+slack_url = "https://instanta-workspace.slack.com"
+username = "sam.ese.odivwri@live.com"
+password = "58ehsBmUuQLar6Z"
+default_channels = ["general", "random"]
+webdriver_endpoint = 'http://localhost:4444/wd/hub'
+
+[qa_settings]
+    search_wait_time = 30
+
+[locators]
+    [locators.login.username]
+        by = 'XPATH'
+        selector = '//input[@data-qa="login_email"]'
+    [locators.login.password]
+        by = 'XPATH'
+        selector = '//input[@data-qa="login_password"]'
+    [locators.login.submit]
+        by = 'XPATH'
+        selector = '//button[@data-qa="signin_button"]'
+    [locators.channels]
+        by = 'XPATH'
+        selector = "//div[@data-qa='channels']"
+    [locators.channels.dropdown]
+        by = 'XPATH'
+        selector = "//div[@data-qa='virtual-list-item' and @aria-label='Channels']"
+    [locators.channels.general]
+        by = 'XPATH'
+        selector = "//div[@data-qa-channel-sidebar-channel-id='C033N113F1P']"
+    [locators.texteditor]
+        by = "CLASS_NAME"
+        selector = "ql-editor"
+    [locators.tool_tip.save_message]
+        by = "XPATH"
+        selector = ".//button[@data-qa='save_message']"
+    [locators.saved_messages.button]
+        by = "XPATH"
+        selector = ".//div[@data-qa-channel-sidebar-link-id='Psaved']"
+    [locators.saved_messages.text]
+        by = "CLASS_NAME"
+        selector = "p-rich_text_section"
+    [locators.search_button]
+        by = "XPATH"
+        selector = ".//button[@data-qa='top_nav_search']"
+    [locators.search_results]
+        by = "CLASS_NAME"
+        selector = "p-rich_text_section"

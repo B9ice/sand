@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="107.574" timestamp="2022-02-28T23:33:07.664205" hostname="SODIVWRI-M-VK5B"><testcase classname="tests.test_messages.BaseTest" name="test_send_message_on_default_channel" time="107.536" /></testsuite></testsuites>

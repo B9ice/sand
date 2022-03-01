@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Test Report</title>
+    <link href="assets/style.css" rel="stylesheet" type="text/css"/></head>
+  <body onLoad="init()">
+    <script>/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function toArray(iter) {
+    if (iter === null) {
+        return null;
+    }
+    return Array.prototype.slice.call(iter);
+}
+
+function find(selector, elem) { // eslint-disable-line no-redeclare
+    if (!elem) {
+        elem = document;
+    }
+    return elem.querySelector(selector);
+}
+
+function findAll(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return toArray(elem.querySelectorAll(selector));
+}
+
+function sortColumn(elem) {
+    toggleSortStates(elem);
+    const colIndex = toArray(elem.parentNode.childNodes).indexOf(elem);
+    let key;
+    if (elem.classList.contains('result')) {
+        key = keyResult;
+    } else if (elem.classList.contains('links')) {
+        key = keyLink;
+    } else {
+        key = keyAlpha;
+    }
+    sortTable(elem, key(colIndex));
+}
+
+function showAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(showExtras);
+}
+
+function hideAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(hideExtras);
+}
+
+function showExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.remove('collapsed');
+    expandcollapse.classList.remove('expander');
+    expandcollapse.classList.add('collapser');
+}
+
+function hideExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.add('collapsed');
+    expandcollapse.classList.remove('collapser');
+    expandcollapse.classList.add('expander');
+}
+
+function showFilters() {
+    const filterItems = document.getElementsByClassName('filter');
+    for (let i = 0; i < filterItems.length; i++)
+        filterItems[i].hidden = false;
+}
+
+function addCollapse() {
+    // Add links for show/hide all
+    const resulttable = find('table#results-table');
+    const showhideall = document.createElement('p');
+    showhideall.innerHTML = '<a href="javascript:showAllExtras()">Show all details</a> / ' +
+                            '<a href="javascript:hideAllExtras()">Hide all details</a>';
+    resulttable.parentElement.insertBefore(showhideall, resulttable);
+
+    // Add show/hide link to each result
+    findAll('.col-result').forEach(function(elem) {
+        const collapsed = getQueryParameter('collapsed') || 'Passed';
+        const extras = elem.parentNode.nextElementSibling;
+        const expandcollapse = document.createElement('span');
+        if (extras.classList.contains('collapsed')) {
+            expandcollapse.classList.add('expander');
+        } else if (collapsed.includes(elem.innerHTML)) {
+            extras.classList.add('collapsed');
+            expandcollapse.classList.add('expander');
+        } else {
+            expandcollapse.classList.add('collapser');
+        }
+        elem.appendChild(expandcollapse);
+
+        elem.addEventListener('click', function(event) {
+            if (event.currentTarget.parentNode.nextElementSibling.classList.contains('collapsed')) {
+                showExtras(event.currentTarget);
+            } else {
+                hideExtras(event.currentTarget);
+            }
+        });
+    });
+}
+
+function getQueryParameter(name) {
+    const match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+}
+
+function init () { // eslint-disable-line no-unused-vars
+    resetSortHeaders();
+
+    addCollapse();
+
+    showFilters();
+
+    sortColumn(find('.initial-sort'));
+
+    findAll('.sortable').forEach(function(elem) {
+        elem.addEventListener('click',
+            function() {
+                sortColumn(elem);
+            }, false);
+    });
+}
+
+function sortTable(clicked, keyFunc) {
+    const rows = findAll('.results-table-row');
+    const reversed = !clicked.classList.contains('asc');
+    const sortedRows = sort(rows, keyFunc, reversed);
+    /* Whole table is removed here because browsers acts much slower
+     * when appending existing elements.
+     */
+    const thead = document.getElementById('results-table-head');
+    document.getElementById('results-table').remove();
+    const parent = document.createElement('table');
+    parent.id = 'results-table';
+    parent.appendChild(thead);
+    sortedRows.forEach(function(elem) {
+        parent.appendChild(elem);
+    });
+    document.getElementsByTagName('BODY')[0].appendChild(parent);
+}
+
+function sort(items, keyFunc, reversed) {
+    const sortArray = items.map(function(item, i) {
+        return [keyFunc(item), i];
+    });
+
+    sortArray.sort(function(a, b) {
+        const keyA = a[0];
+        const keyB = b[0];
+
+        if (keyA == keyB) return 0;
+
+        if (reversed) {
+            return keyA < keyB ? 1 : -1;
+        } else {
+            return keyA > keyB ? 1 : -1;
+        }
+    });
+
+    return sortArray.map(function(item) {
+        const index = item[1];
+        return items[index];
+    });
+}
+
+function keyAlpha(colIndex) {
+    return function(elem) {
+        return elem.childNodes[1].childNodes[colIndex].firstChild.data.toLowerCase();
+    };
+}
+
+function keyLink(colIndex) {
+    return function(elem) {
+        const dataCell = elem.childNodes[1].childNodes[colIndex].firstChild;
+        return dataCell == null ? '' : dataCell.innerText.toLowerCase();
+    };
+}
+
+function keyResult(colIndex) {
+    return function(elem) {
+        const strings = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed',
+            'Skipped', 'Passed'];
+        return strings.indexOf(elem.childNodes[1].childNodes[colIndex].firstChild.data);
+    };
+}
+
+function resetSortHeaders() {
+    findAll('.sort-icon').forEach(function(elem) {
+        elem.parentNode.removeChild(elem);
+    });
+    findAll('.sortable').forEach(function(elem) {
+        const icon = document.createElement('div');
+        icon.className = 'sort-icon';
+        icon.textContent = 'vvv';
+        elem.insertBefore(icon, elem.firstChild);
+        elem.classList.remove('desc', 'active');
+        elem.classList.add('asc', 'inactive');
+    });
+}
+
+function toggleSortStates(elem) {
+    //if active, toggle between asc and desc
+    if (elem.classList.contains('active')) {
+        elem.classList.toggle('asc');
+        elem.classList.toggle('desc');
+    }
+
+    //if inactive, reset all other functions and add ascending active
+    if (elem.classList.contains('inactive')) {
+        resetSortHeaders();
+        elem.classList.remove('inactive');
+        elem.classList.add('active');
+    }
+}
+
+function isAllRowsHidden(value) {
+    return value.hidden == false;
+}
+
+function filterTable(elem) { // eslint-disable-line no-unused-vars
+    const outcomeAtt = 'data-test-result';
+    const outcome = elem.getAttribute(outcomeAtt);
+    const classOutcome = outcome + ' results-table-row';
+    const outcomeRows = document.getElementsByClassName(classOutcome);
+
+    for(let i = 0; i < outcomeRows.length; i++){
+        outcomeRows[i].hidden = !elem.checked;
+    }
+
+    const rows = findAll('.results-table-row').filter(isAllRowsHidden);
+    const allRowsHidden = rows.length == 0 ? true : false;
+    const notFoundMessage = document.getElementById('not-found-message');
+    notFoundMessage.hidden = !allRowsHidden;
+}
+</script>
+    <h1>report.html</h1>
+    <p>Report generated on 28-Feb-2022 at 23:34:55 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.1.1</p>
+    <h2>Environment</h2>
+    <table id="environment">
+      <tr>
+        <td>Packages</td>
+        <td>{"pluggy": "1.0.0", "py": "1.11.0", "pytest": "7.0.1"}</td></tr>
+      <tr>
+        <td>Platform</td>
+        <td>macOS-12.1-x86_64-i386-64bit</td></tr>
+      <tr>
+        <td>Plugins</td>
+        <td>{"cov": "3.0.0", "docker-compose": "3.2.1", "forked": "1.4.0", "html": "3.1.1", "metadata": "1.11.0", "xdist": "2.5.0"}</td></tr>
+      <tr>
+        <td>Python</td>
+        <td>3.9.8</td></tr></table>
+    <h2>Summary</h2>
+    <p>1 tests ran in 107.58 seconds. </p>
+    <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="passed">1 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="failed">0 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
+    <h2>Results</h2>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable result initial-sort" col="result">Result</th>
+          <th class="sortable" col="name">Test</th>
+          <th class="sortable" col="duration">Duration</th>
+          <th class="sortable links" col="links">Links</th></tr>
+        <tr hidden="true" id="not-found-message">
+          <th colspan="4">No results found. Try to check the filters</th></tr></thead>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_messages.py::BaseTest::test_send_message_on_default_channel</td>
+          <td class="col-duration">107.53</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> -----------------------------Captured stderr setup------------------------------ <br/>Creating slackbot_selenium-hub_1 ... 
+Creating slackbot_selenium-hub_1 ... done
+Creating slackbot_chrome_1       ... 
+Creating slackbot_firefox_1      ... 
+Creating slackbot_edge_1         ... 
+Creating slackbot_firefox_1      ... done
+Creating slackbot_edge_1         ... done
+Creating slackbot_chrome_1       ... done
+<br/> ------------------------------Captured stdout call------------------------------ <br/>Expected: This is a unique msg [2022-02-28T23:33:46.029755]
+Found: This is a unique msg [2022-02-28T23:33:46.029755]
+<br/> ----------------------------Captured stdout teardown---------------------------- <br/>Logs from slackbot_chrome_1: 
+ ============================
+2022-03-01 06:33:10,125 INFO Included extra file &quot;/etc/supervisor/conf.d/selenium.conf&quot; during parsing
+2022-03-01 06:33:10,126 INFO supervisord started with pid 9
+2022-03-01 06:33:11,129 INFO spawned: &#x27;xvfb&#x27; with pid 11
+2022-03-01 06:33:11,131 INFO spawned: &#x27;vnc&#x27; with pid 12
+2022-03-01 06:33:11,133 INFO spawned: &#x27;novnc&#x27; with pid 13
+2022-03-01 06:33:11,135 INFO spawned: &#x27;selenium-node&#x27; with pid 14
+2022-03-01 06:33:11,219 INFO success: xvfb entered RUNNING state, process has stayed up for &gt; than 0 seconds (startsecs)
+2022-03-01 06:33:11,219 INFO success: vnc entered RUNNING state, process has stayed up for &gt; than 0 seconds (startsecs)
+2022-03-01 06:33:11,219 INFO success: novnc entered RUNNING state, process has stayed up for &gt; than 0 seconds (startsecs)
+2022-03-01 06:33:11,219 INFO success: selenium-node entered RUNNING state, process has stayed up for &gt; than 0 seconds (startsecs)
+Generating Selenium Config
+Configuring server...
+Setting up SE_NODE_HOST...
+Setting up SE_NODE_PORT...
+Setting up SE_NODE_GRID_URL...
+Selenium Grid Node configuration: 
+[events]
+publish = &quot;tcp://selenium-hub:4442&quot;
+subscribe = &quot;tcp://selenium-hub:4443&quot;
+
+[node]
+session-timeout = &quot;300&quot;
+override-max-sessions = false
+detect-drivers = false
+max-sessions = 1
+
+[[node.driver-configuration]]
+display-name = &quot;chrome&quot;
+stereotype = &#x27;{&quot;browserName&quot;: &quot;chrome&quot;, &quot;browserVersion&quot;: &quot;98.0&quot;, &quot;platformName&quot;: &quot;Linux&quot;}&#x27;
+max-sessions = 1
+
+Starting Selenium Grid Node...
+06:33:13.344 INFO [LoggingOptions.configureLogEncoding] - Using the system default encoding
+06:33:13.357 INFO [OpenTelemetryTracer.createTracer] - Using OpenTelemetry for tracing
+06:33:13.986 INFO [UnboundZmqEventBus.&lt;init&gt;] - Connecting to tcp://selenium-hub:4442 and tcp://selenium-hub:4443
+06:33:14.137 INFO [UnboundZmqEventBus.&lt;init&gt;] - Sockets created
+06:33:15.106 INFO [UnboundZmqEventBus.&lt;init&gt;] - Event bus ready
+06:33:15.388 INFO [NodeServer.createHandlers] - Reporting self as: http://192.168.16.5:5555
+06:33:15.422 INFO [NodeOptions.getSessionFactories] - Detected 4 available processors
+06:33:15.555 INFO [NodeOptions.report] - Adding chrome for {&quot;browserVersion&quot;: &quot;98.0&quot;,&quot;browserName&quot;: &quot;chrome&quot;,&quot;platformName&quot;: &quot;Linux&quot;,&quot;se:vncEnabled&quot;: true} 1 times
+06:33:15.574 INFO [Node.&lt;init&gt;] - Binding additional locator mechanisms: relative, id, name
+06:33:16.200 INFO [NodeServer$1.start] - Starting registration process for node id 963568fe-a3df-4e1c-872d-cc935592afd7
+06:33:16.205 INFO [NodeServer.execute] - Started Selenium node 4.1.2 (revision 9a5a329c5a): http://192.168.16.5:5555
+06:33:16.217 INFO [NodeServer$1.lambda$start$1] - Sending registration event...
+06:33:17.592 INFO [NodeServer.lambda$createHandlers$2] - Node has been added
+Starting ChromeDriver 98.0.4758.102 (273bf7ac8c909cde36982d27f66f3c70846a3718-refs/branch-heads/4758@{#1151}) on port 40314
+Only local connections are allowed.
+Please see https://chromedriver.chromium.org/security-considerations for suggestions on keeping ChromeDriver safe.
+[1646116400.600][SEVERE]: bind() failed: Cannot assign requested addreCshsr o(m9e9D)r
+iver was started successfully.
+06:33:22.018 INFO [ProtocolHandshake.createSession] - Detected dialect: W3C
+ 
+
+Logs from slackbot_edge_1: 
+ ==========================
+2022-03-01 06:33:10,078 INFO Included extra file &quot;/etc/supervisor/conf.d/selenium.conf&quot; during parsing
+2022-03-01 06:33:10,080 INFO supervisord started with pid 10
+2022-03-01 06:33:11,083 INFO spawned: &#x27;xvfb&#x27; with pid 12
+2022-03-01 06:33:11,086 INFO spawned: &#x27;vnc&#x27; with pid 13
+2022-03-01 06:33:11,090 INFO spawned: &#x27;novnc&#x27; with pid 15
+2022-03-01 06:33:11,094 INFO spawned: &#x27;selenium-node&#x27; with pid 17
+2022-03-01 06:33:11,203 INFO success: xvfb entered RUNNING state, process has stayed up for &gt; than 0 seconds (startsecs)
+2022-03-01 06:33:11,204 INFO success: vnc entered RUNNING state, process has stayed up for &gt; than 0 seconds (startsecs)
+2022-03-01 06:33:11,204 INFO success: novnc entered RUNNING state, process has stayed up for &gt; than 0 seconds (startsecs)
+2022-03-01 06:33:11,204 INFO success: selenium-node entered RUNNING state, process has stayed up for &gt; than 0 seconds (startsecs)
+Generating Selenium Config
+Configuring server...
+Setting up SE_NODE_HOST...
+Setting up SE_NODE_PORT...
+Setting up SE_NODE_GRID_URL...
+Selenium Grid Node configuration: 
+[events]
+publish = &quot;tcp://selenium-hub:4442&quot;
+subscribe = &quot;tcp://selenium-hub:4443&quot;
+
+[node]
+session-timeout = &quot;300&quot;
+override-max-sessions = false
+detect-drivers = false
+max-sessions = 1
+
+[[node.driver-configuration]]
+display-name = &quot;MicrosoftEdge&quot;
+stereotype = &#x27;{&quot;browserName&quot;: &quot;MicrosoftEdge&quot;, &quot;browserVersion&quot;: &quot;98.0&quot;, &quot;platformName&quot;: &quot;Linux&quot;}&#x27;
+max-sessions = 1
+
+Starting Selenium Grid Node...
+06:33:13.414 INFO [LoggingOptions.configureLogEncoding] - Using the system default encoding
+06:33:13.429 INFO [OpenTelemetryTracer.createTracer] - Using OpenTelemetry for tracing
+06:33:14.011 INFO [UnboundZmqEventBus.&lt;init&gt;] - Connecting to tcp://selenium-hub:4442 and tcp://selenium-hub:4443
+06:33:14.188 INFO [UnboundZmqEventBus.&lt;init&gt;] - Sockets created
+06:33:15.163 INFO [UnboundZmqEventBus.&lt;init&gt;] - Event bus ready
+06:33:15.426 INFO [NodeServer.createHandlers] - Reporting self as: http://192.168.16.4:5555
+06:33:15.473 INFO [NodeOptions.getSessionFactories] - Detected 4 available processors
+06:33:15.580 INFO [NodeOptions.report] - Adding MicrosoftEdge for {&quot;browserVersion&quot;: &quot;98.0&quot;,&quot;browserName&quot;: &quot;MicrosoftEdge&quot;,&quot;platformName&quot;: &quot;Linux&quot;,&quot;se:vncEnabled&quot;: true} 1 times
+06:33:15.607 INFO [Node.&lt;init&gt;] - Binding additional locator mechanisms: id, relative, name
+06:33:16.176 INFO [NodeServer$1.start] - Starting registration process for node id 1c8e7c25-a322-4147-8b96-9fbdbab403be
+06:33:16.189 INFO [NodeServer.execute] - Started Selenium node 4.1.2 (revision 9a5a329c5a): http://192.168.16.4:5555
+06:33:16.201 INFO [NodeServer$1.lambda$start$1] - Sending registration event...
+06:33:17.279 INFO [NodeServer.lambda$createHandlers$2] - Node has been added
+ 
+
+Logs from slackbot_firefox_1: 
+ =============================
+2022-03-01 06:33:09,958 INFO Included extra file &quot;/etc/supervisor/conf.d/selenium.conf&quot; during parsing
+2022-03-01 06:33:09,959 INFO supervisord started with pid 8
+2022-03-01 06:33:10,961 INFO spawned: &#x27;xvfb&#x27; with pid 10
+2022-03-01 06:33:10,963 INFO spawned: &#x27;vnc&#x27; with pid 11
+2022-03-01 06:33:10,964 INFO spawned: &#x27;novnc&#x27; with pid 12
+2022-03-01 06:33:10,967 INFO spawned: &#x27;selenium-node&#x27; with pid 13
+2022-03-01 06:33:11,004 INFO success: xvfb entered RUNNING state, process has stayed up for &gt; than 0 seconds (startsecs)
+2022-03-01 06:33:11,004 INFO success: vnc entered RUNNING state, process has stayed up for &gt; than 0 seconds (startsecs)
+2022-03-01 06:33:11,004 INFO success: novnc entered RUNNING state, process has stayed up for &gt; than 0 seconds (startsecs)
+2022-03-01 06:33:11,004 INFO success: selenium-node entered RUNNING state, process has stayed up for &gt; than 0 seconds (startsecs)
+Generating Selenium Config
+Configuring server...
+Setting up SE_NODE_HOST...
+Setting up SE_NODE_PORT...
+Setting up SE_NODE_GRID_URL...
+Selenium Grid Node configuration: 
+[events]
+publish = &quot;tcp://selenium-hub:4442&quot;
+subscribe = &quot;tcp://selenium-hub:4443&quot;
+
+[node]
+session-timeout = &quot;300&quot;
+override-max-sessions = false
+detect-drivers = false
+max-sessions = 1
+
+[[node.driver-configuration]]
+display-name = &quot;firefox&quot;
+stereotype = &#x27;{&quot;browserName&quot;: &quot;firefox&quot;, &quot;browserVersion&quot;: &quot;97.0&quot;, &quot;platformName&quot;: &quot;Linux&quot;}&#x27;
+max-sessions = 1
+
+Starting Selenium Grid Node...
+06:33:13.616 INFO [LoggingOptions.configureLogEncoding] - Using the system default encoding
+06:33:13.648 INFO [OpenTelemetryTracer.createTracer] - Using OpenTelemetry for tracing
+06:33:14.244 INFO [UnboundZmqEventBus.&lt;init&gt;] - Connecting to tcp://selenium-hub:4442 and tcp://selenium-hub:4443
+06:33:14.367 INFO [UnboundZmqEventBus.&lt;init&gt;] - Sockets created
+06:33:15.341 INFO [UnboundZmqEventBus.&lt;init&gt;] - Event bus ready
+06:33:15.555 INFO [NodeServer.createHandlers] - Reporting self as: http://192.168.16.3:5555
+06:33:15.591 INFO [NodeOptions.getSessionFactories] - Detected 4 available processors
+06:33:15.685 INFO [NodeOptions.report] - Adding firefox for {&quot;browserVersion&quot;: &quot;97.0&quot;,&quot;browserName&quot;: &quot;firefox&quot;,&quot;platformName&quot;: &quot;Linux&quot;,&quot;se:vncEnabled&quot;: true} 1 times
+06:33:15.706 INFO [Node.&lt;init&gt;] - Binding additional locator mechanisms: relative, name, id
+06:33:16.424 INFO [NodeServer$1.start] - Starting registration process for node id c2c8714c-1094-44cf-b109-fb140d97553e
+06:33:16.442 INFO [NodeServer.execute] - Started Selenium node 4.1.2 (revision 9a5a329c5a): http://192.168.16.3:5555
+06:33:16.450 INFO [NodeServer$1.lambda$start$1] - Sending registration event...
+06:33:17.988 INFO [NodeServer.lambda$createHandlers$2] - Node has been added
+ 
+
+Logs from slackbot_selenium-hub_1: 
+ ==================================
+2022-03-01 06:33:09,348 INFO Included extra file &quot;/etc/supervisor/conf.d/selenium-grid-hub.conf&quot; during parsing
+2022-03-01 06:33:09,352 INFO supervisord started with pid 9
+2022-03-01 06:33:10,355 INFO spawned: &#x27;selenium-grid-hub&#x27; with pid 11
+2022-03-01 06:33:11,357 INFO success: selenium-grid-hub entered RUNNING state, process has stayed up for &gt; than 0 seconds (startsecs)
+06:33:11.368 INFO [LoggingOptions.configureLogEncoding] - Using the system default encoding
+06:33:11.407 INFO [OpenTelemetryTracer.createTracer] - Using OpenTelemetry for tracing
+06:33:11.938 INFO [BoundZmqEventBus.&lt;init&gt;] - XPUB binding to [binding to tcp://*:4442, advertising as tcp://192.168.16.2:4442], XSUB binding to [binding to tcp://*:4443, advertising as tcp://192.168.16.2:4443]
+06:33:12.262 INFO [UnboundZmqEventBus.&lt;init&gt;] - Connecting to tcp://192.168.16.2:4442 and tcp://192.168.16.2:4443
+06:33:12.348 INFO [UnboundZmqEventBus.&lt;init&gt;] - Sockets created
+06:33:13.359 INFO [UnboundZmqEventBus.&lt;init&gt;] - Event bus ready
+06:33:15.078 INFO [Hub.execute] - Started Selenium Hub 4.1.2 (revision 9a5a329c5a): http://192.168.16.2:4444
+06:33:15.946 INFO [Node.&lt;init&gt;] - Binding additional locator mechanisms: id, name, relative
+06:33:17.261 INFO [LocalDistributor.add] - Added node 1c8e7c25-a322-4147-8b96-9fbdbab403be at http://192.168.16.4:5555. Health check every 120s
+06:33:17.269 INFO [Node.&lt;init&gt;] - Binding additional locator mechanisms: name, relative, id
+06:33:17.577 INFO [LocalDistributor.add] - Added node 963568fe-a3df-4e1c-872d-cc935592afd7 at http://192.168.16.5:5555. Health check every 120s
+06:33:17.585 INFO [Node.&lt;init&gt;] - Binding additional locator mechanisms: name, relative, id
+06:33:17.958 INFO [LocalDistributor.add] - Added node c2c8714c-1094-44cf-b109-fb140d97553e at http://192.168.16.3:5555. Health check every 120s
+06:33:17.961 INFO [GridModel.setAvailability] - Switching node 1c8e7c25-a322-4147-8b96-9fbdbab403be (uri: http://192.168.16.4:5555) from DOWN to UP
+06:33:17.965 INFO [GridModel.setAvailability] - Switching node 963568fe-a3df-4e1c-872d-cc935592afd7 (uri: http://192.168.16.5:5555) from DOWN to UP
+06:33:18.000 INFO [GridModel.setAvailability] - Switching node c2c8714c-1094-44cf-b109-fb140d97553e (uri: http://192.168.16.3:5555) from DOWN to UP
+06:33:20.262 INFO [LocalDistributor.newSession] - Session request received by the distributor: 
+ [Capabilities {browserName: chrome, goog:chromeOptions: {args: [--disable-popup-blocking, --headless], extensions: []}, pageLoadStrategy: normal}]
+06:33:22.116 INFO [LocalDistributor.newSession] - Session created by the distributor. Id: 5d3bea6c07949ce4fd762d2029b9e023, Caps: Capabilities {acceptInsecureCerts: false, browserName: chrome, browserVersion: 98.0.4758.102, chrome: {chromedriverVersion: 98.0.4758.102 (273bf7ac8c90..., userDataDir: /tmp/.com.google.Chrome.CohEHW}, goog:chromeOptions: {debuggerAddress: localhost:33929}, networkConnectionEnabled: false, pageLoadStrategy: normal, platformName: linux, proxy: {}, se:cdp: ws://192.168.16.5:4444/sess..., se:cdpVersion: 98.0.4758.102, se:vnc: ws://192.168.16.5:4444/sess..., se:vncEnabled: true, se:vncLocalAddress: ws://192.168.16.5:7900, setWindowRect: true, strictFileInteractability: false, timeouts: {implicit: 0, pageLoad: 300000, script: 30000}, unhandledPromptBehavior: dismiss and notify, webauthn:extension:credBlob: true, webauthn:extension:largeBlob: true, webauthn:virtualAuthenticators: true}
+ 
+
+<br/> ----------------------------Captured stderr teardown---------------------------- <br/>Stopping slackbot_edge_1         ... 
+Stopping slackbot_chrome_1       ... 
+Stopping slackbot_firefox_1      ... 
+Stopping slackbot_selenium-hub_1 ... 
+Stopping slackbot_firefox_1      ... done
+Stopping slackbot_edge_1         ... done
+Stopping slackbot_chrome_1       ... done
+Stopping slackbot_selenium-hub_1 ... done
+Removing slackbot_edge_1         ... 
+Removing slackbot_chrome_1       ... 
+Removing slackbot_firefox_1      ... 
+Removing slackbot_selenium-hub_1 ... 
+Removing slackbot_selenium-hub_1 ... done
+Removing slackbot_edge_1         ... done
+Removing slackbot_chrome_1       ... done
+Removing slackbot_firefox_1      ... done
+<br/></div></td></tr></tbody></table></body></html>
