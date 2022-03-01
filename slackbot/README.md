@@ -11,8 +11,8 @@
 
 1. unzip slackbot.zip
 2. Create and activate a python3  virtual env 
-   a. python3 -m venv <my venv path>
-   b. source <my venv path>/bin/activate
+   - python3 -m venv .slackenv
+   - source .slackenv/bin/activate
 3. cd slackbot & pip install -r requirements.txt
 4. locate assets/slack.toml and enter login credentials for slack client
 5. run `BROWSER=chrome pytest --docker-compose ./docker-compose.yml --no-header -v --junitxml=result.xml`
