@@ -1,6 +1,6 @@
-slack_url = "https://instanta-workspace.slack.com"
-username = "sam.ese.odivwri@live.com"
-password = "58ehsBmUuQLar6Z"
+slack_url = "https://money-vtk6804.slack.com"
+username = "sam.ese.odivwri@gmail.com"
+password = "jemkym-4cenmy-xaDfyz"
 default_channels = ["general", "random"]
 webdriver_endpoint = 'http://localhost:4444/wd/hub'
 
@@ -25,7 +25,7 @@ webdriver_endpoint = 'http://localhost:4444/wd/hub'
         selector = "//div[@data-qa='virtual-list-item' and @aria-label='Channels']"
     [locators.channels.general]
         by = 'XPATH'
-        selector = "//div[@data-qa-channel-sidebar-channel-id='C033N113F1P']"
+        selector = "//div[span/text()='general']"
     [locators.texteditor]
         by = "CLASS_NAME"
         selector = "ql-editor"
