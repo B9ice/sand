@@ -25,3 +25,4 @@
 - Human readable output is retrievable by adding to command `--html=report.html`
 - `pytest-xdist` is a pytest plugin installed to support running additional tests
   in parallel by specifying -n <number or parallel tests>
+- Solution was ONLY tested in chrome
