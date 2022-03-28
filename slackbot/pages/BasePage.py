@@ -4,6 +4,7 @@ import time
 import unittest
 
 import pytest
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -15,89 +16,81 @@ from selenium.webdriver.support import expected_conditions as EC
 class BasePage(unittest.TestCase):
 
     @staticmethod
-    def unique_message():
-        dt = datetime.datetime.today().isoformat()
-        return f"This is a unique msg [{dt}]"
-
-    @staticmethod
     def get_strategy(st):
         """
         maps strategy string to By
         """
         return getattr(By, st)
 
-    def select_channel(self, name):
+    def search(self, text):
         """
-        Select channel from channels dropdown. Ensure that channels dropdown is
-        expanded before proceeding
+        Locate github search box and send text
         """
-        # check if channels is expanded
-        side_menu = self.driver.find_element(self.get_strategy(self.cfg['locators']['channels']['dropdown']['by']),
-                                             self.cfg['locators']['channels']['dropdown']['selector'])
-
-        if not side_menu.get_attribute('aria-expanded'):
-            self.driver.find_element(self.get_strategy(self.cfg['locators']['channels']['by']),
-                                     self.cfg['locators']['channels']['selector']).click()
-        # select channel
-        WebDriverWait(self.driver, 5).until(
-            EC.presence_of_element_located((BasePage.get_strategy(self.cfg['locators']['channels'][name]['by']),
-                                            self.cfg['locators']['channels'][name]['selector']))).click()
-        return self
-
-    def send_message(self, message):
-        # select channel text editor
-        msg_input = self.driver.find_element(self.get_strategy(self.cfg['locators']['texteditor']['by']),
-                                             self.cfg['locators']['texteditor']['selector'])
-        msg_input.click()
-        msg_input.send_keys(message)
-        msg_input.send_keys(Keys.ENTER)
-        # allow time for message to propagate
-        time.sleep(5)
-        return self
-
-    def search_saved_messages(self, message, refresh=True, wait_time=60):
-        # wait for saved message to be indexed
-        time.sleep(wait_time)
-        # click on search box and enter 'has:star'
-        self.driver.find_element(self.get_strategy(self.cfg['locators']['search_button']['by']),
-                                 self.cfg['locators']['search_button']['selector']).click()
-
-        search_box = self.driver.find_element(self.get_strategy(self.cfg['locators']['texteditor']['by']),
-                                              self.cfg['locators']['texteditor']['selector'])
-        search_box.send_keys('has:star')
+        search_box = self.driver.find_element(self.get_strategy(self.cfg['locators']['search']['q']['by']),
+                                              self.cfg['locators']['search']['q']['selector'])
+        # enter text
+        search_box.clear()
+        search_box.send_keys(text)
         search_box.send_keys(Keys.ENTER)
 
-        if refresh:
-            # click on search box again and hit enter to allow refresh
-            self.driver.find_element(self.get_strategy(self.cfg['locators']['search_button']['by']),
-                                     self.cfg['locators']['search_button']['selector']).click()
-            time.sleep(5)
-            # locate 'has:start' in the suggestion list and click on it
-            self.driver.find_element(By.XPATH, "//li[@data-replacement='has:star']").click()
+        return self
 
-        time.sleep(5)
-        text = self.driver.find_element(self.get_strategy(self.cfg['locators']['search_results']['by']),
-                                        self.cfg['locators']['search_results']['selector']).text
-        print(f"Expected: {message}")
-        print(f"Found: {text}")
-        return text == message
+    def advanced_search_page(self):
+        """
+        Go to advance search page iff not on page
+        """
+        try:
+            self.driver.find_element(
+                self.get_strategy(self.cfg['locators']['advanced']['search']['page']['by']),
+                self.cfg['locators']['advanced']['search']['page']['selector'])
+        except NoSuchElementException:
+            # locate advance search hypertext link and click
+            adv_search_link = self.driver.find_element(
+                self.get_strategy(self.cfg['locators']['search']['advanced']['by']),
+                self.cfg['locators']['search']['advanced']['selector'])
+            adv_search_link.click()
+        return self
 
-    def save_message(self, message):
-        # find message in message pane and perform save via mouse hover action
-        g = self.driver.find_element(By.XPATH, f"//div[contains(text(), '{message}')]")
-        action = ActionChains(self.driver)
-        action.move_to_element(g).perform()
-        # allow time for hover action to complete
-        time.sleep(3)
+    def advanced_search_field(self, by, selector, value, submit=True):
+        """
+        Goto advanced search page, enter criteria and submit
+        """
+        # got to advanced search page
+        self.advanced_search_page()
 
-        # click save ribbon on popup bar
-        self.driver.find_element(self.get_strategy(self.cfg['locators']['tool_tip']['save_message']['by']),
-                                 self.cfg['locators']['tool_tip']['save_message']['selector']).click()
-        # click save_messages button on side menu to display saved messages
-        self.driver.find_element(self.get_strategy(self.cfg['locators']['saved_messages']['button']['by']),
-                                 self.cfg['locators']['saved_messages']['button']['selector']).click()
-        time.sleep(3)
-        # check if save was successful by searching for message in saved messages
-        text = self.driver.find_element(self.get_strategy(self.cfg['locators']['saved_messages']['text']['by']),
-                                        self.cfg['locators']['saved_messages']['text']['selector']).text
-        return text == message
+        # fill in the search criteria
+        self.driver.find_element(self.get_strategy(by), selector).send_keys(value)
+
+        # submit search criteria
+        if submit:
+            search_button = self.driver.find_element(self.get_strategy(self.cfg['locators']['search']['button']['by']),
+                                                     self.cfg['locators']['search']['button']['selector'])
+            search_button.click()
+        return self
+
+    def advanced_search_options(self, option, options, submit=True):
+        """
+        Goto advanced search page, select option and submit
+        """
+        # goto advanced search page
+        self.advanced_search_page()
+
+        # go to options dropdown
+        self.driver.find_element(self.get_strategy(options['by']), options['selector']).click()
+
+        # fill in the search criteria
+        opt = option['selector'] % option['value']
+        self.driver.find_element(self.get_strategy(option['by']), opt).click()
+
+        # submit search criteria
+        if submit:
+            search_button = self.driver.find_element(self.get_strategy(self.cfg['locators']['search']['button']['by']),
+                                                     self.cfg['locators']['search']['button']['selector'])
+            search_button.click()
+        return self
+
+    def text_exists(self, text):
+        return text in self.driver.page_source
+
+    def link_exists(self, text):
+        return self.driver.find_element(By.LINK_TEXT, text)

@@ -1,46 +1,46 @@
-slack_url = "https://money-vtk6804.slack.com"
-username = "sam.ese.odivwri@gmail.com"
-password = "jemkym-4cenmy-xaDfyz"
-default_channels = ["general", "random"]
+github_url = "https://github.com/"
+
 webdriver_endpoint = 'http://localhost:4444/wd/hub'
 
-[qa_settings]
-    search_wait_time = 30
-
 [locators]
-    [locators.login.username]
+    [locators.search.q]
         by = 'XPATH'
-        selector = '//input[@data-qa="login_email"]'
-    [locators.login.password]
+        selector = '//input[@name="q"]'
+    [locators.advanced.search.page]
+        by = 'ID'
+        selector = 'search-title'
+    [locators.search.advanced]
+        by = 'LINK_TEXT'
+        selector = 'Advanced search'
+    [locators.search.user.followers]
+        by = 'ID'
+        selector = 'search_followers'
+        value = '>50'
+    [locators.search.user.language]
+        by = 'ID'
+        selector = "search_user_language"
+    [locators.search.user.language.option]
         by = 'XPATH'
-        selector = '//input[@data-qa="login_password"]'
-    [locators.login.submit]
-        by = 'XPATH'
-        selector = '//button[@data-qa="signin_button"]'
-    [locators.channels]
-        by = 'XPATH'
-        selector = "//div[@data-qa='channels']"
-    [locators.channels.dropdown]
-        by = 'XPATH'
-        selector = "//div[@data-qa='virtual-list-item' and @aria-label='Channels']"
-    [locators.channels.general]
-        by = 'XPATH'
-        selector = "//div[span/text()='general']"
-    [locators.texteditor]
-        by = "CLASS_NAME"
-        selector = "ql-editor"
-    [locators.tool_tip.save_message]
+        selector = "//option[@value='%s']"
+        value = 'JavaScript'
+    [locators.search.issues]
+        by = 'ID'
+        selector = "search_state"
+    [locators.search.issues.state]
         by = "XPATH"
-        selector = ".//button[@data-qa='save_message']"
-    [locators.saved_messages.button]
+        selector = "//option[@value='%s']"
+        value = "closed"
+    [locators.search.stars]
+        by = "ID"
+        selector = "search_stars"
+        value = ">45"
+    [locators.search.license]
+        by = "ID"
+        selector = "search_license"
+    [locators.search.license.option]
         by = "XPATH"
-        selector = ".//div[@data-qa-channel-sidebar-link-id='Psaved']"
-    [locators.saved_messages.text]
-        by = "CLASS_NAME"
-        selector = "p-rich_text_section"
-    [locators.search_button]
+        selector = "//option[@value='%s']"
+        value = "bsl-1.0"
+    [locators.search.button]
         by = "XPATH"
-        selector = ".//button[@data-qa='top_nav_search']"
-    [locators.search_results]
-        by = "CLASS_NAME"
-        selector = "p-rich_text_section"
+        selector = "//button[@type='submit']"
